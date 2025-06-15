@@ -3,7 +3,7 @@ import mongoose  from "mongoose";
 
 const { Schema, model } = mongoose;
 
-const VerificationCodeSchema = new Schema({
+const PasswordResetCodeSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
         ref: "User",
@@ -22,7 +22,7 @@ const VerificationCodeSchema = new Schema({
         type: Date,
         required: true,
     },
-    verified:{
+    used:{
         type: Boolean,
         default: false
     },
@@ -32,8 +32,7 @@ const VerificationCodeSchema = new Schema({
     }
 }, { timestamps: true });
 
-// VerificationCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-const VerificationCode = model("VerificationCode", VerificationCodeSchema);
+const PasswordResetCode = model("PasswordResetCode", PasswordResetCodeSchema);
 
-export default VerificationCode;
+export default PasswordResetCode;

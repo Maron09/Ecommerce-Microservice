@@ -25,16 +25,24 @@ app.use(express.json());
 
 
 app.use((req, res, next) => {
-    const ip =req.ip
-    if (ip === '::1' || ip === '127.0.0.1') {
-        return next()
+    const ip = req.ip;
+
+    const localIPs = ['::1', '127.0.0.1', '::ffff:127.0.0.1', 'localhost'];
+
+    if (localIPs.includes(ip)) {
+        return next();
     }
+
     return RateLimiterMiddleware({
         keyPrefix: process.env.RATE_LIMIT_KEY_PREFIX || 'rate_limit',
-        points: process.env.RATE_LIMIT_POINTS ? parseInt(process.env.RATE_LIMIT_POINTS) : 100,
-        duration: process.env.RATE_LIMIT_DURATION ? parseInt(process.env.RATE_LIMIT_DURATION) : 60,
-    })(req, res, next)
-})
+        points: parseInt(process.env.RATE_LIMIT_POINTS || '100'),
+        duration: parseInt(process.env.RATE_LIMIT_DURATION || '60'),
+    })(req, res, next);
+});
+
+
+app.set('trust proxy', true);
+
 
 app.use(RateLimiter.create({
     maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) : 1000,

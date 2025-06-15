@@ -10,7 +10,7 @@ const NotificationSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ["VERIFICATION", "RESET_PASSWORD", "WELCOME", "ORDER_CONFIRMATION"],
+        enum: ["VERIFICATION", "RESEND_OTP", "FORGOT_PASSWORD", "RESET_PASSWORD", "WELCOME", "ORDER_CONFIRMATION"],
         required: true
     },
     payload: {
@@ -28,7 +28,12 @@ const NotificationSchema = new Schema({
     },
     errorMessage: {
         type: String
-    }
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        index: { expires: "15m" }
+    },
 }, {
     timestamps: true
 });

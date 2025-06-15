@@ -4,7 +4,7 @@ import logger from "../utils/logger.js"
 
 function CreateProxy(targetBaseURL, serviceName = "Unknown Service", options = {}) {
     const {
-        pathRewriteRegex = /^\v1/,
+        pathRewriteRegex = /^\/v1/,
         replacement = "/api",
         parseReqBody = true
     } = options

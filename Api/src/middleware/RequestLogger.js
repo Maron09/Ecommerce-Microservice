@@ -11,7 +11,7 @@ class LoggerMiddleware {
         res.on('finish', () => {
             const statusCode = res.statusCode
             logger.info(`Received [${timestamp}] ${method} ${url} - ${statusCode} - ${userAgent}`)
-            logger.info(`Request Body, ${req.body}`)
+            // logger.info(`Request Body, ${req.body}`)
         })
 
         next();

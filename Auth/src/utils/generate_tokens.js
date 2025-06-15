@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import "../helpers/env.js"
 import RefreshToken from '../models/RefreshToken_model.js';
 import VerificationCode from '../models/verificationCode_model.js';
+import PasswordResetCode from '../models/Password_reset_model.js';
 
 
 // const generateTokens = async (user) => {
@@ -72,6 +73,21 @@ class TokenService {
             return code;
         } catch (error) {
             throw new Error("Error generating verification OTP: " + error.message);
+        }
+    }
+
+    static async generateForgotPasswordOTP(user) {
+        try {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            await PasswordResetCode.create({
+                user: user._id,
+                code,
+                type: "email",
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes from now
+            });
+            return code;
+        } catch (error) {
+            throw new Error("Error generating forgot password OTP: " + error.message);
         }
     }
 }

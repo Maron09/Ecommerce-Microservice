@@ -7,7 +7,7 @@ import helmet from "helmet"
 import errorHandler from "../../Auth/src/middleware/Error_handler.js"
 import logger from "./utils/logger.js"
 import rabbitMQClient from "./utils/rabbit.js"
-import handleVerification from "./events/Notification_events.js"
+import NotificationEvents from "./events/Notification_events.js"
 
 
 const app = express()
@@ -31,9 +31,17 @@ async function startServer() {
         await rabbitMQClient.connect(process.env.EVENTS, process.env.TOPIC, {durable: false})
         logger.info("RabbitMQ connected Successfully")
 
-        await rabbitMQClient.consume('user.verification_code.created', handleVerification)
+        await rabbitMQClient.consume('user.verification_code.created', NotificationEvents.handleVerification)
+
+        await rabbitMQClient.consume('user.verification_code.resend', NotificationEvents.handleResendOTP)
+
+        await rabbitMQClient.consume('user.is_verified', NotificationEvents.handleVerifyuser)
+
+        await rabbitMQClient.consume('user.forgot_password_code.send', NotificationEvents.handleForgotPassword)
+
+        await rabbitMQClient.consume('user.password_reset', NotificationEvents.handleResetPassword)
         app.listen(PORT, () => {
-            logger.info(`🚀 Notification service is running on http://localhost:${PORT}`);
+            logger.info(`🚀 Notification service is running on port:${PORT}`);
         })
     } catch(error){
         logger.error("Error starting server", error.stack)

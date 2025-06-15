@@ -22,15 +22,21 @@ app.use(corsConfig());
 app.use(express.json());
 
 
-app.use(RateLimiterMiddleware({
-    keyPrefix: process.env.RATE_LIMIT_KEY_PREFIX || 'rate_limit',
-    points: process.env.RATE_LIMIT_POINTS ? parseInt(process.env.RATE_LIMIT_POINTS) : 100,
-    duration: process.env.RATE_LIMIT_DURATION ? parseInt(process.env.RATE_LIMIT_DURATION) : 15 * 60,
-}))
+app.use((req, res, next) => {
+    const ip =req.ip
+    if (ip === '::1' || ip === 'localhost' || ip === '::ffff:127.0.0.1') {
+        return next()
+    }
+    return RateLimiterMiddleware({
+        keyPrefix: process.env.RATE_LIMIT_KEY_PREFIX || 'rate_limit',
+        points: process.env.RATE_LIMIT_POINTS ? parseInt(process.env.RATE_LIMIT_POINTS) : 1000,
+        duration: process.env.RATE_LIMIT_DURATION ? parseInt(process.env.RATE_LIMIT_DURATION) : 60,
+    })(req, res, next)
+})
 
 app.use(RateLimiter.create({
-    maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) : 100,
-    timeWindow: process.env.RATE_LIMIT_TIME_WINDOW ? parseInt(process.env.RATE_LIMIT_TIME_WINDOW) : 15 * 60 * 1000,
+    maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) : 1000,
+    timeWindow: process.env.RATE_LIMIT_TIME_WINDOW ? parseInt(process.env.RATE_LIMIT_TIME_WINDOW) : 60 * 1000,
     message: "Too many requests, please try again later.",
     statusCode: process.env.RATE_LIMIT_STATUS_CODE ? parseInt(process.env.RATE_LIMIT_STATUS_CODE) : 429,
 }));
@@ -41,11 +47,13 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use("/v1/auth", CreateProxy(process.env.AUTH_SERVICE_URL, "Auth Service"))
+
 
 app.use(errorHandler)
 
 app.listen(PORT, () => {
     logger.info(`🚀 API Gateway running on port: ${PORT}`);
-
+    logger.info(`🚀 Auth Service is running on URL: ${process.env.AUTH_SERVICE_URL}`)
     logger.info(`🚀 Redis Url: ${process.env.REDIS_URL}`);
 })
