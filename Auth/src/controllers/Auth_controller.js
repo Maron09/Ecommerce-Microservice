@@ -153,7 +153,7 @@ class AuthController {
                 logger.warn("Invalid verification code: ", code);
                 return res.status(400).json({ success: false, message: "Invalid verification code" });
             }
-            if (!verificationCode.verified) {
+            if (verificationCode.verified) {
                 logger.info("Verification code already verified: ", code);
                 return res.status(200).json({ success: true, message: "User already verified" });
             }
@@ -185,6 +185,14 @@ class AuthController {
                     role: user.role
                 }
             }, { persistent: true })
+
+            await rabbitMQClient.publish('user.is_verified.profile_create', {
+                userId: user._id.toString(),
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role
+            }, { persistent: true})
 
             await session.commitTransaction();
             return res.status(200).json({
