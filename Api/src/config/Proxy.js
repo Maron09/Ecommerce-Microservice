@@ -27,7 +27,7 @@ function CreateProxy(targetBaseURL, serviceName = "Unknown Service", options = {
             return proxyResData
         },
         proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
-            proxyReqOpts.headers["x-user-id"] = srcReq.user?.userID || ''
+            proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId || ''
             return proxyReqOpts;
         }
     })

@@ -49,11 +49,14 @@ app.use((req, res, next) => {
 
 app.use("/v1/auth", CreateProxy(process.env.AUTH_SERVICE_URL, "Auth Service"))
 
+app.use("/v1/customer", AuthMiddleware.ValidateToken, CreateProxy(process.env.CUSTOMER_SERVICE_URL, "Customer Service"))
+
 
 app.use(errorHandler)
 
 app.listen(PORT, () => {
     logger.info(`🚀 API Gateway running on port: ${PORT}`);
     logger.info(`🚀 Auth Service is running on URL: ${process.env.AUTH_SERVICE_URL}`)
+    logger.info(`🚀 Customer Service is running on URL: ${process.env.CUSTOMER_SERVICE_URL}`);
     logger.info(`🚀 Redis Url: ${process.env.REDIS_URL}`);
 })

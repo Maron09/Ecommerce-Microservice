@@ -10,6 +10,7 @@ import errorHandler from "./middleware/Error_handler.js";
 import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
 import CustomerEvents from "./events/customer_events.js";
+import router from "./routes/customer_routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -50,9 +51,7 @@ app.use(RateLimiter.create({
     statusCode: process.env.RATE_LIMIT_STATUS_CODE ? parseInt(process.env.RATE_LIMIT_STATUS_CODE) : 429,
 }));
 
-
-// Api routes
-
+app.use("/api/customer", router);
 
 
 app.use(errorHandler)

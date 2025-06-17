@@ -24,6 +24,7 @@ class AuthMiddleware {
                     message: "Forbidden"
                 });
             }
+
             req.user = user;
             next()
         })
