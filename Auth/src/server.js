@@ -10,6 +10,7 @@ import errorHandler from "./middleware/Error_handler.js";
 import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
 import router from "./routes/Auth_routes.js";
+import AuthEvents from "./events/Auth_events.js";
 
 
 const app = express();
@@ -62,6 +63,8 @@ async function startServer() {
     try{
         await rabbitMQClient.connect(process.env.EVENTS, process.env.TOPIC, {durable: false})
         logger.info("RabbitMQ connected Successfully")
+
+        await rabbitMQClient.consume('user.profile.updates', AuthEvents.onProfileChange)
 
         app.listen(PORT, () => {
             logger.info(`🚀 Auth Service running on port: ${PORT}`)

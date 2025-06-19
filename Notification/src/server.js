@@ -35,6 +35,8 @@ async function startServer() {
 
         await rabbitMQClient.consume('user.verification_code.resend', NotificationEvents.handleResendOTP)
 
+        await rabbitMQClient.consume('user.profile.updated', NotificationEvents.handleProfileUpdate)
+
         await rabbitMQClient.consume('user.is_verified', NotificationEvents.handleVerifyuser)
 
         await rabbitMQClient.consume('user.forgot_password_code.send', NotificationEvents.handleForgotPassword)
