@@ -41,7 +41,17 @@ const CustomerSchema = new Schema({
         }
     },
     avatar: {
-        type: String,
+        originalName: {
+            type: String
+        },
+        publicId: {
+            type: String,
+            required: true
+        },
+        secureUrl: {
+            type: String,
+            required: true
+        }
     },
     createdAt: {
         type: Date,

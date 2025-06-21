@@ -3,6 +3,7 @@ import logger from "../utils/logger.js";
 import mongoose from "mongoose";
 import rabbitMQClient from "../utils/rabbit.js";
 import Address from "../models/Address.js";
+import CloudinaryServices from "../utils/cloudinary.js";
 
 
 class CustomerControllers {
@@ -351,6 +352,64 @@ class CustomerControllers {
             session.endSession();
         }
     }
+
+    static async uploadCustomerAvatar(req, res) {
+        logger.info("Uploading customer avatar");
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const userId = req.user.userId;
+            if (!userId) {
+                logger.warn("User ID not found in request");
+                return res.status(400).json({ success: false, message: "User ID is required" });
+            }
+
+            const customer = await Customer.findOne({ userId }).session(session);
+            if (!customer) {
+                logger.warn("Customer not found for avatar upload", { userId });
+                return res.status(404).json({ success: false, message: "Customer not found" });
+            }
+
+            if (!req.file) {
+                logger.warn("No file uploaded for avatar", { userId });
+                return res.status(400).json({ success: false, message: "No file uploaded" });
+            }
+
+            // Delete old avatar if exists
+            if (customer.avatar?.publicId) {
+                await CloudinaryServices.deleteImage(customer.avatar.publicId);
+            }
+
+            const uploadResult = await CloudinaryServices.uploadProfilePicture(req.file);
+            if (!uploadResult?.secure_url) {
+                logger.error("Failed to upload avatar to Cloudinary", { userId });
+                return res.status(500).json({ success: false, message: "Failed to upload avatar" });
+            }
+
+            customer.avatar = {
+                originalName: req.file.originalname,
+                publicId: uploadResult.public_id,
+                secureUrl: uploadResult.secure_url,
+            };
+
+            await customer.save({ session });
+            await session.commitTransaction();
+
+            logger.info("Customer avatar uploaded successfully", { userId });
+            return res.status(200).json({
+                success: true,
+                message: "Avatar uploaded successfully",
+                data: customer.avatar
+            });
+        } catch (error) {
+            logger.error("Error uploading customer avatar", { error: error.stack || error.message });
+            await session.abortTransaction();
+            return res.status(500).json({ success: false, message: "Internal Server Error" });
+        } finally {
+            session.endSession();
+        }
+    }
+
 }
 
 export default CustomerControllers;

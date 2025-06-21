@@ -1,9 +1,13 @@
 import express from "express";
 import CustomerControllers from "../controllers/Customer_controllers.js";
 import AuthMiddleware from "../middleware/Auth_middlware.js";
+import createUploadHandler from "../utils/multer.js";
+
+
 
 
 const router = express.Router();
+const uploadAvatar = createUploadHandler("avatar");
 
 router.get("/profile", AuthMiddleware.verifyToken, CustomerControllers.customerProfile);
 router.put("/profile", AuthMiddleware.verifyToken, CustomerControllers.updateCustomerProfile);
@@ -12,5 +16,6 @@ router.get("/address", AuthMiddleware.verifyToken, CustomerControllers.customerA
 router.get("/address/:addressId", AuthMiddleware.verifyToken, CustomerControllers.getCustomerAddress);
 router.put("/address/:addressId", AuthMiddleware.verifyToken, CustomerControllers.updateCustomerAddress);
 router.delete("/address/:addressId", AuthMiddleware.verifyToken, CustomerControllers.deleteCustomerAddress);
+router.post("/profile-picture", AuthMiddleware.verifyToken, uploadAvatar, CustomerControllers.uploadCustomerAvatar);
 
 export default router;
