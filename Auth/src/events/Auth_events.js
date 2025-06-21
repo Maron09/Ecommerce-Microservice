@@ -7,10 +7,6 @@ import TokenService from "../utils/generate_tokens.js";
 
 class AuthEvents {
     static async onProfileChange(data) {
-        if (!data?.email) {
-            logger.info("No email change data provided, skipping event processing");
-            return;
-        }
         logger.info("Received profile update event", data)
         const session = await mongoose.startSession();
         session.startTransaction();
