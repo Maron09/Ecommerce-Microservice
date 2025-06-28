@@ -46,11 +46,11 @@ const CustomerSchema = new Schema({
         },
         publicId: {
             type: String,
-            required: true
+            required: false
         },
         secureUrl: {
             type: String,
-            required: true
+            required: false
         }
     },
     createdAt: {

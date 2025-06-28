@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Customer from "../models/Vendor.js";
 
 
-class CustomerEvents {
+class VendorEvents {
     static async onVendorCreated(data){
         if (data.role !== "vendor") {
             logger.warn("Received event for non-vendor role, skipping", data);
@@ -46,4 +46,4 @@ class CustomerEvents {
 }
 
 
-export default CustomerEvents;
+export default VendorEvents;

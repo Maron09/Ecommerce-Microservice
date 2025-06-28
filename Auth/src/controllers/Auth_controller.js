@@ -55,6 +55,14 @@ class AuthController {
                 }
             }, { persistent: true });
 
+            await rabbitMQClient.publish('user.created', {
+                firstName: newCreatedUser.firstName,
+                lastName: newCreatedUser.lastName,
+                email: newCreatedUser.email,
+                userId: newCreatedUser._id.toString(),
+                role: newCreatedUser.role,
+                isActive: newCreatedUser.isActive
+            }, { persistent: true });
             await session.commitTransaction();
             return res.status(201).json({
                 success: true,
@@ -192,6 +200,11 @@ class AuthController {
                 lastName: user.lastName,
                 email: user.email,
                 role: user.role
+            }, { persistent: true})
+
+            await rabbitMQClient.publish('user.verified', {
+                userId: user._id.toString(),
+                isActive: user.isActive
             }, { persistent: true})
 
             await session.commitTransaction();

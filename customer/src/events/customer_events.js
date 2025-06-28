@@ -1,6 +1,7 @@
 import logger from "../utils/logger.js";
 import mongoose from "mongoose";
 import Customer from "../models/Customer.js";
+import rabbitMQClient from "../utils/rabbit.js";
 
 
 class CustomerEvents {
@@ -26,7 +27,7 @@ class CustomerEvents {
                 return;
             }
             logger.info("Creating new customer...");
-            await Customer.create([{
+            const [newCustomer] = await Customer.create([{
                 userId: data.userId,
                 firstName: data.firstName,
                 lastName: data.lastName,
@@ -34,6 +35,14 @@ class CustomerEvents {
                 email: data.email,
             }], { session });
             logger.info("Customer created successfully");
+
+            await rabbitMQClient.publish('customer.created', {
+                customerId: newCustomer._id.toString(),
+                userId: newCustomer.userId,
+                firstName: newCustomer.firstName,
+                lastName: newCustomer.lastName,
+                email: newCustomer.email
+            })
             await session.commitTransaction();
         }catch (error) {
             await session.abortTransaction();

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import rabbitMQClient from "../utils/rabbit.js";
 import Address from "../models/Address.js";
 import CloudinaryServices from "../utils/cloudinary.js";
+import withTransaction from "../helpers/transactions.js";
 
 
 class CustomerControllers {
@@ -29,47 +30,58 @@ class CustomerControllers {
 
     static async updateCustomerProfile(req, res) {
         logger.info("Updating Customer profile");
-        const session = await mongoose.startSession();
-        session.startTransaction();
+
+        const userId = req.user.userId;
+        const { firstName, lastName, email, phone } = req.body;
+
         try {
-            const userId = req.user.userId;
-            const { firstName, lastName, email, phone } = req.body;
+            const updatedCustomer = await withTransaction(async (session) => {
+                const customer = await Customer.findOne({ userId }).session(session);
+                if (!customer) {
+                    logger.warn("Customer not found for update", { userId });
+                    throw new Error("NOT_FOUND");
+                }
 
-            const customer = await Customer.findOne({  userId }).session(session);
-            if (!customer) {
-                logger.warn("Customer not found for update", { userId });
-                return res.status(404).json({ success: false, message: "Customer not found" });
-            }
-            const emailChanged = email && email !== customer.email;
+                const emailChanged = email && email !== customer.email;
 
-            customer.firstName = firstName || customer.firstName;
-            customer.lastName = lastName || customer.lastName;
-            customer.email = email || customer.email;
-            customer.phone = phone || customer.phone;
-            customer.fullName = `${customer.firstName} ${customer.lastName}`;
-            await customer.save({ session });
-            await session.commitTransaction();
-            logger.info("Customer profile updated successfully", { userId });
-            await rabbitMQClient.publish("user.profile.updates", {
-                userId,
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-                email: customer.email,
-            })
-            const responseMessage = emailChanged
-                ? "Profile updated successfully, email change requires verification. check your inbox."
+                customer.firstName = firstName || customer.firstName;
+                customer.lastName = lastName || customer.lastName;
+                customer.email = email || customer.email;
+                customer.phone = phone || customer.phone;
+                customer.fullName = `${customer.firstName} ${customer.lastName}`;
+                await customer.save({ session });
+
+                // Publish to MQ inside the transaction scope
+                await rabbitMQClient.publish("user.profile.updates", {
+                    userId,
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    email: customer.email,
+                });
+
+                return { customer, emailChanged };
+            }, "updateCustomerProfile");
+
+            const responseMessage = updatedCustomer.emailChanged
+                ? "Profile updated successfully, email change requires verification. Check your inbox."
                 : "Customer profile updated successfully";
 
-            return res.status(200).json({ success: true, message: responseMessage, data: customer });
+            return res.status(200).json({
+                success: true,
+                message: responseMessage,
+                data: updatedCustomer.customer
+            });
 
-        }catch (error) {
-            logger.error("Error updating customer profile", error);
-            await session.abortTransaction();
+        } catch (err) {
+            if (err.message === "NOT_FOUND") {
+                return res.status(404).json({ success: false, message: "Customer not found" });
+            }
+
+            logger.error("Error updating customer profile", err);
             return res.status(500).json({ success: false, message: "Internal Server Error" });
-        } finally {
-            session.endSession();
         }
     }
+
 
     static async customerAddresses(req, res) {
         logger.info("Fetching customer addresses");
