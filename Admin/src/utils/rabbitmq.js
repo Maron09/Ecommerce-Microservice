@@ -33,7 +33,7 @@ class RabbitMQClient {
             await this.channel.bindQueue('retry_queue_v2', 'retry_exchange', 'retry');
 
 
-            await this.channel.bindQueue('retry_queue', 'retry_exchange', 'retry');
+            // await this.channel.bindQueue('retry_queue', 'retry_exchange', 'retry');
 
 
             logger.info(`Connected to RabbitMQ and exchange '${this.exchangeName}' created successfully`);

@@ -75,9 +75,10 @@ class AdminEvents {
                 return;
             }
 
-            user.isActive = data.isActive;
+            if (typeof data.isActive === "boolean") {
+                user.isActive = data.isActive;
+            }
             await user.save({ session });
-
             logger.info("User verification status updated in admin DB", {
                 userId: data.userId,
                 isActive: data.isActive

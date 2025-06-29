@@ -26,6 +26,7 @@ class AuthMiddleware {
             }
 
             req.user = user;
+            req.headers["x-user-role"] = user.role;
             next()
         })
     }
