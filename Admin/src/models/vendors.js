@@ -3,15 +3,16 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
-function titleCase(str= '') {
-    return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-}
-
-const VendorSchema = new Schema({
+const vendorSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
-        required: true,
-        ref: 'User',
+        ref: "User",
+        required: true
+    },
+    vendorId: {
+        type: Schema.Types.ObjectId,
+        ref: "Vendor",
+        required: true
     },
     firstName: {
         type: String,
@@ -26,8 +27,7 @@ const VendorSchema = new Schema({
     fullName: {
         type: String,
         required: true,
-        trim: true,
-        set: titleCase
+        trim: true
     },
     email: {
         type: String,
@@ -38,37 +38,23 @@ const VendorSchema = new Schema({
     },
     phone: {
         type: String,
-        validate: {
-            validator: function(v) {
-                return /^\+?[1-9]\d{9,13}$/.test(v);
-            },
-            message: props => `${props.value} is not a valid phone number!`
-        }
+        trim: true
     },
     businessName: {
         type: String,
         trim: true,
-        set: titleCase
     },
     avatar: {
-        originalName: {
-            type: String
-        },
-        publicId: {
-            type: String,
-            required: false
-        },
         secureUrl: {
             type: String,
-            required: false
         }
     },
     isApproved:{
         type: Boolean,
-        default: false
     }
 }, {timestamps: true});
 
-const Vendor = model("Vendor", VendorSchema);
 
-export default Vendor;
+const Vendors = model("Vendor", vendorSchema);
+
+export default Vendors;

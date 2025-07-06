@@ -10,6 +10,7 @@ import errorHandler from "./middleware/Error_handler.js";
 import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
 import VendorEvents from "./events/vendor_events.js";
+import router from "./routes/vendor_routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -52,7 +53,7 @@ app.use(RateLimiter.create({
 
 
 // Api routes
-
+app.use("/api/vendor", router)
 
 
 app.use(errorHandler)

@@ -12,7 +12,6 @@ class CustomerControllers {
         logger.info("Fetching customer profile");
         try {
             const userId = req.user.userId;
-            console.log("User ID from request", { userId });
 
             const customer = await Customer.findOne({ userId });
             if (!customer) {
@@ -28,7 +27,7 @@ class CustomerControllers {
         }
     }
 
-    static async updateCustomerProfile(req, res) {
+    static async updateCustomerProfile(req, res) {   
         logger.info("Updating Customer profile");
 
         const userId = req.user.userId;

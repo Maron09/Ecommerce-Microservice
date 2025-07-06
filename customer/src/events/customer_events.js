@@ -2,6 +2,7 @@ import logger from "../utils/logger.js";
 import mongoose from "mongoose";
 import Customer from "../models/Customer.js";
 import rabbitMQClient from "../utils/rabbit.js";
+import withTransaction from "../helpers/transactions.js";
 
 
 class CustomerEvents {
@@ -15,17 +16,11 @@ class CustomerEvents {
             throw new Error("Invalid data for customer creation");
         }
         logger.info("Received customer created event", data);
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-            logger.info("Processing customer created event...");
-            // Check if customer already exists
-            const existingCustomer = await Customer.findOne({ userId: data.userId }, null, { session });
-            if (existingCustomer) {
-                logger.warn("Customer already exists, skipping creation", existingCustomer);
-                await session.commitTransaction();
-                return;
-            }
+        return await withTransaction(async (session) => {
+            const exist = await Customer.findOne({ userId: data.userId }, null, { session })
+
+            if (exist) return
+
             logger.info("Creating new customer...");
             const [newCustomer] = await Customer.create([{
                 userId: data.userId,
@@ -43,14 +38,7 @@ class CustomerEvents {
                 lastName: newCustomer.lastName,
                 email: newCustomer.email
             })
-            await session.commitTransaction();
-        }catch (error) {
-            await session.abortTransaction();
-            logger.error("Error processing customer created event", error);
-            throw error;
-        }finally {
-            session.endSession();
-        }
+        })
     }
 }
 

@@ -8,7 +8,7 @@ const router = express.Router()
 
 router.get("/users", AuthMiddleware.verifyToken, AdminControllers.getAllUsers)
 router.get("/customers", AuthMiddleware.verifyToken, AdminControllers.getAllCustomers)
-
+router.get("/vendors", AuthMiddleware.verifyToken, AdminControllers.getAllVendors)
 
 
 export default router

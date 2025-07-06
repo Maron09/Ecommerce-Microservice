@@ -53,6 +53,7 @@ app.use("/v1/customer", AuthMiddleware.ValidateToken, CreateProxy(process.env.CU
 
 app.use("/v1/admin", AuthMiddleware.ValidateToken, CreateProxy(process.env.ADMIN_SERVICE, "Admin Service"))
 
+app.use("/v1/vendor", AuthMiddleware.ValidateToken, CreateProxy(process.env.VENDOR_SERVICE, "Vendor Service"))
 
 app.use(errorHandler)
 
@@ -60,6 +61,7 @@ app.listen(PORT, () => {
     logger.info(`🚀 API Gateway running on port: ${PORT}`);
     logger.info(`🚀 Auth Service is running on URL: ${process.env.AUTH_SERVICE_URL}`)
     logger.info(`🚀 Customer Service is running on URL: ${process.env.CUSTOMER_SERVICE_URL}`);
+    logger.info(`🚀 Vendor Service is running on URL: ${process.env.VENDOR_SERVICE}`);
     logger.info(`🚀 Admin Service is running on URL: ${process.env.ADMIN_SERVICE}`);
     logger.info(`🚀 Redis Url: ${process.env.REDIS_URL}`);
 })

@@ -4,6 +4,8 @@ import withTransaction from "../helpers/transactions.js";
 import Admin from "../models/admin.js";
 import Users from "../models/users.js";
 import Customers from "../models/customers.js";
+import Vendors from "../models/vendors.js";
+
 
 
 
@@ -109,6 +111,64 @@ class AdminEvents {
             logger.info("[AdminEvents.onCustomerCreated] User created")
         }, "onCustomerCreated")
     }
+
+    static async onVendorCreated(data) {
+        if (!data?.userId || !data?.vendorId || !data?.firstName || !data?.lastName || !data?.email) {
+            logger.error("Invalid data received for customer creation", data);
+            throw new Error("Invalid data for customer creation");
+        }
+
+        logger.info("Received vendor created event", data)
+        return await withTransaction(async (session) => {
+            const exist = await Vendors.findOne({userId: data.userId}, null, {session})
+
+            if (exist) return
+
+            await Vendors.create([{
+                userId: data.userId,
+                vendorId: data.vendorId,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                fullName: `${data.firstName} ${data.lastName}`,
+                email: data.email,
+                isApproved: data.isApproved
+            }], {session})
+
+            logger.info("[AdminEvents.onVendorCreated]User Created")
+        }, "onVendorCreated")
+    }
+
+    static async onCompleteVendorProfile(data) {
+        if (!data?.userId || !data?.businessName || !data?.phone){
+            logger.error("Invalid data received for vendor KYC", data);
+            throw new Error("Invalid data for vendor KYC");
+        }
+
+        logger.info("Received vendor KYC event", data)
+        return await withTransaction(async (session) => {
+            const vendor = await Vendors.findOne({ userId: data.userId }, null, { session })
+            if (!vendor) {
+                logger.warn(`Vendor not found for userId: ${data.userId}`);
+                return
+            }
+
+            vendor.businessName = data.businessName
+                .split(" ")
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(" ");
+            vendor.phone = data.phone
+
+            await vendor.save({ session })
+            
+            logger.info(`✅ Vendor profile updated for userId: ${data.userId}`);
+        })
+    }
+
+    static async onCustomerUpdated(data) {}
+
+    static async onVendorUpdated(data) {}
+
+    static async onUserUpdated(data) {}
 
 }
 

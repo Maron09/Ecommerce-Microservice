@@ -4,6 +4,7 @@ import logger from "../utils/logger.js";
 import withTransaction from "../helpers/transactions.js";
 import paginationResults from "../helpers/pagination.js";
 import { buildPaginatedResponse } from "../helpers/paginatonResponse.js";
+import Vendors from "../models/vendors.js";
 
 
 
@@ -88,6 +89,50 @@ class AdminControllers {
 
         } catch(error) {
             logger.error("Error fetching all customers", error.stack)
+            res.status(500).json({
+                success: false,
+                message: "Internal Server Error"
+            })
+        }
+    }
+
+    static async getAllVendors(req, res) {
+        logger.info("Fetching all vendors..")
+
+        try {
+            if (!req.user || req.user?.role !== "admin") {
+                logger.warn("Unauthorized access attempt to getAllUsers")
+                return res.status(403).json({
+                    success: false,
+                    message: "Access Denied. Admin only."
+                });
+            }
+
+            const totalItems = await Vendors.countDocuments()
+            const pagination = paginationResults(req, totalItems)
+
+            const vendors = await Vendors.find()
+                .limit(pagination.limit)
+                .skip(pagination.skip)
+            
+            if(!vendors || vendors.length === 0) {
+                logger.warn("No vendors found")
+                return res.status(404).json(buildPaginatedResponse({
+                    data: [],
+                    message: "No vendors found",
+                    pagination,
+                    dataKey: "vendors"
+                }));
+            }
+
+            res.status(200).json(buildPaginatedResponse({
+                data: vendors,
+                message: "Vendors retrieved successfully",
+                pagination,
+                dataKey: "vendors"
+            }));
+        }catch(error) {
+            logger.error("Error fetching all vendors", error.stack)
             res.status(500).json({
                 success: false,
                 message: "Internal Server Error"
