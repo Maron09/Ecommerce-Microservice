@@ -5,6 +5,7 @@ import Admin from "../models/admin.js";
 import Users from "../models/users.js";
 import Customers from "../models/customers.js";
 import Vendors from "../models/vendors.js";
+import SubAccounts from "../models/subaccounts.js";
 
 
 
@@ -161,6 +162,49 @@ class AdminEvents {
             await vendor.save({ session })
             
             logger.info(`✅ Vendor profile updated for userId: ${data.userId}`);
+        })
+    }
+
+    static async onSubAccountCreated(data) {
+        if (!data?.userId || !data?.vendorId || !data?.bankName || !data?.bankCode || !data?.subaccountCode) {
+            logger.error("Invalid data received for subaccount", data);
+            throw new Error("Invalid data for subaccount");
+        }
+
+        logger.info("Received Subaccount event", data)
+        return await withTransaction(async (session) => {
+            const existing = await SubAccounts.findOne({
+                userId: data.userId,
+                vendorId: data.vendorId,
+                bankCode: data.bankCode
+            }).session(session)
+
+            if (existing) {
+                logger.info("Updating existing vendor bank account with subaccount code", {
+                    vendorId: data.vendorId,
+                    bankCode: data.bankCode
+                })
+                existing.subaccountCode = data.subaccountCode
+                existing.isVerified = true
+                await existing.save({session})
+                return existing
+            }
+
+            logger.info("Creating new vendor bank account with subaccount code", {
+                vendorId: data.vendorId,
+                bankCode: data.bankCode
+            });
+
+            const newBank = await SubAccounts.create([{
+                userId: data.userId,
+                vendorId: data.vendorId,
+                bankName: data.bankName,
+                bankCode: data.bankCode,
+                subaccountCode: data.subaccountCode,
+                isVerified: true
+            }], {session})
+
+            return newBank[0]
         })
     }
 

@@ -7,6 +7,7 @@ const router = express.Router()
 
 router.get("/profile", AuthMiddleware.verifyToken, VendorControllers.vendorProfile)
 router.put("/profile/kyc", AuthMiddleware.verifyToken, VendorControllers.completeVendorProfile)
+router.post("/add-bank", AuthMiddleware.verifyToken, VendorControllers.addbankDetails)
 
 
 export default router

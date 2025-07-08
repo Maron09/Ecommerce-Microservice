@@ -71,7 +71,7 @@ async function startServer() {
         });
     } catch (error) {
         logger.error(`Error consuming RabbitMQ queue: ${error.message}`);
-        process
+        process.exit(1)
     }
 }
 startServer()

@@ -69,9 +69,10 @@ async function startServer() {
         await rabbitMQClient.consume('customer.created', AdminEvents.onCustomerCreated)
         await rabbitMQClient.consume('vendor.created', AdminEvents.onVendorCreated)
         await rabbitMQClient.consume('vendor.KYC', AdminEvents.onCompleteVendorProfile)
+        await rabbitMQClient.consume('vendor.subaccount', AdminEvents.onSubAccountCreated)
 
         app.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`);
+            logger.info(`Server is running on port ${PORT}`)
         });
     } catch (error) {
         logger.error(`Error consuming RabbitMQ queue: ${error.stack}`);

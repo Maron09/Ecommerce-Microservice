@@ -2,7 +2,9 @@ import Vendor from "../models/Vendor.js";
 import logger from "../utils/logger.js";
 import withTransaction from "../helpers/transactions.js";
 import rabbitMQClient from "../utils/rabbit.js";
-import { error } from "console";
+import PaystackServices from "../utils/paystack_modules.js";
+import Bank from "../models/Banks.js";
+import VendorBankAccount from "../models/vendorBankAccount.js";
 
 
 
@@ -72,6 +74,100 @@ class VendorControllers {
         }
 
     }
+    
+    static async addbankDetails(req, res) {
+        logger.info("Adding vendor bank details");
+
+        const userId = req.user.userId;
+        const { accountNumber, bankName } = req.body;
+
+        try {
+            const bankDetails = await withTransaction(async (session) => {
+                const bank = await Bank.findOne({
+                    name: new RegExp(`^${bankName}$`, 'i')
+                }).session(session);
+
+                if (!bank) {
+                    logger.warn("Bank not found", { bankName });
+                    throw new Error("NOT_FOUND");
+                }
+
+                const bankCode = bank.code;
+                const existing = await VendorBankAccount.findOne({
+                    userId,
+                    accountNumber,
+                    bankCode
+                }).session(session)
+
+                if (existing) {
+                    throw new Error("DUPLICATE_ACCOUNT")
+                }
+                const resolved = await PaystackServices.resolveAccount(accountNumber, bankCode);
+                const accountName = resolved.account_name;
+
+                const vendor = await Vendor.findOne({userId}).session(session);
+                if (!vendor) {
+                    throw new Error("VENDOR_NOT_FOUND");
+                }
+
+                const sub = await PaystackServices.createSubaccount({
+                    business_name: vendor.businessName,
+                    bank_code: bankCode,
+                    account_number: accountNumber,
+                    percentage_charge: 2.5
+                });
+
+                const newBank = await VendorBankAccount.create([{
+                    userId,
+                    vendorId: vendor._id.toString(),
+                    accountName,
+                    accountNumber,
+                    bankName: bank.name,
+                    bankCode,
+                    subaccountCode: sub.subaccount_code,
+                    isVerified: true,
+                }], { session });
+
+                await rabbitMQClient.publish("vendor.subaccount", {
+                    userId,
+                    vendorId: vendor._id.toString(),
+                    bankName: bank.name,
+                    bankCode,
+                    subaccountCode: sub.subaccount_code,
+                })
+
+                return newBank[0]; 
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: "Bank details added",
+                data: bankDetails
+            });
+
+        } catch (error) {
+            if (error.message === "NOT_FOUND") {
+                return res.status(404).json({ success: false, message: "Bank not found" });
+            }
+
+            if (error.message === "DUPLICATE_ACCOUNT") {
+                return res.status(409).json({
+                    success: false,
+                    message: "This bank account already exists for the vendor."
+                });
+            }
+
+
+            if (error.message === "VENDOR_NOT_FOUND") {
+                return res.status(404).json({ success: false, message: "Vendor not found" });
+            }
+
+            logger.error("Error Completing vendor profile", error);
+            return res.status(500).json({ success: false, message: "Internal Server Error" });
+        }
+    }
+
+
 }
 
 
