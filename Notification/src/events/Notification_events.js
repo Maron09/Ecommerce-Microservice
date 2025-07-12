@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import Notification from "../models/Notification_model.js";
-import sendEmail from "../helpers/mail.js";
+import sendNotificationEmail from "../helpers/sendNotificationEmail.js";
 
 
 
@@ -15,28 +15,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const otpcode = payload?.OTP || payload.otp || payload.otpCode || "000000";
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    Thank you for registering. Your verification code is:
-                    </p>
-                    <div style="font-size: 32px; font-weight: bold; color: #000; text-align: center; margin: 20px 0;">
-                    ${otpcode}
-                    </div>
-                    <p style="font-size: 14px; color: #888;">
-                    This code will expire in 15 minutes. If you did not request this, please ignore this email.
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Your Verification Code",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "VERIFICATION",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             logger.info("Verification email sent successfully to:", email)
@@ -60,28 +43,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const otpcode = payload?.OTP || payload.otp || payload.otpCode || "000000";
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    Your OTP has been resent. Your verification code is:
-                    </p>
-                    <div style="font-size: 32px; font-weight: bold; color: #000; text-align: center; margin: 20px 0;">
-                    ${otpcode}
-                    </div>
-                    <p style="font-size: 14px; color: #888;">
-                    This code will expire in 15 minutes. If you did not request this, please ignore this email.
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Your Resent Verification Code",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "RESEND_OTP",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             logger.info("Resend OTP email sent successfully to:", email)
@@ -105,21 +71,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    Your account has been successfully verified. Welcome aboard!
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Account Verification Successful",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "WELCOME",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             await notification.save()
@@ -142,28 +98,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const otpcode = payload?.OTP || payload.otp || payload.otpCode || "000000";
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    You requested a password reset. Your verification code is:
-                    </p>
-                    <div style="font-size: 32px; font-weight: bold; color: #000; text-align: center; margin: 20px 0;">
-                    ${otpcode}
-                    </div>
-                    <p style="font-size: 14px; color: #888;">
-                    This code will expire in 15 minutes. If you did not request this, please ignore this email.
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Your Password Reset Code",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "FORGOT_PASSWORD",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             await notification.save()
@@ -186,21 +125,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    Your password has been successfully reset. If you did not request this change, please contact support.
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Password Reset Successful",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "RESET_PASSWORD",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             await notification.save()
@@ -223,28 +152,11 @@ class NotificationEvents {
                 type: data.type,
                 payload: data.payload
             })
-            const { email, payload } = data;
-            const otpcode = payload?.OTP || payload.otp || payload.otpCode || "000000";
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Hello ${payload.firstName},</h2>
-                    <p style="font-size: 16px; color: #555;">
-                    Your Email has been Updated. Your verification code is:
-                    </p>
-                    <div style="font-size: 32px; font-weight: bold; color: #000; text-align: center; margin: 20px 0;">
-                    ${otpcode}
-                    </div>
-                    <p style="font-size: 14px; color: #888;">
-                    This code will expire in 15 minutes. If you did not request this, please ignore this email.
-                    </p>
-                    <p style="font-size: 14px; color: #888;">– The Team</p>
-                </div>
-                `
-            await sendEmail(
-                email,
-                "Email Change Verification Code",
-                html
-            )
+            await sendNotificationEmail({
+                email: data.email,
+                type: "VERIFICATION",
+                payload: data.payload
+            })
             notification.status = "SENT"
             await session.commitTransaction()
             logger.info("Verification email sent successfully to:", email)
@@ -258,6 +170,44 @@ class NotificationEvents {
             logger.info("Verification email sent successfully")
         }
     }
+
+    static async handleVendorApproved(data) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const notification = await Notification.create([{
+                email: data.email,
+                type: data.type,
+                payload: data.payload,
+                status: "PENDING" // start with pending
+            }], { session });
+
+            await sendNotificationEmail({
+                email: data.email,
+                type: "APPROVED",
+                payload: data.payload
+            });
+
+            // Update the status in the same session
+            await Notification.updateOne(
+                { _id: notification[0]._id },
+                { $set: { status: "SENT" } },
+                { session }
+            );
+
+            await session.commitTransaction();
+
+            logger.info("Vendor approval email sent successfully to:", data.email);
+        } catch (error) {
+            await session.abortTransaction();
+            logger.error("Error sending vendor approval email:", error.stack);
+            throw error;
+        } finally {
+            await session.endSession();
+        }
+    }
+
 }
 
 export default NotificationEvents

@@ -5,6 +5,8 @@ import withTransaction from "../helpers/transactions.js";
 import paginationResults from "../helpers/pagination.js";
 import { buildPaginatedResponse } from "../helpers/paginatonResponse.js";
 import Vendors from "../models/vendors.js";
+import rabbitMQClient from "../utils/rabbit.js";
+import mongoose from "mongoose";
 
 
 
@@ -137,6 +139,76 @@ class AdminControllers {
                 success: false,
                 message: "Internal Server Error"
             })
+        }
+    }
+
+    static async approveVendor(req, res) {
+        logger.info("Approving Vendor(s)")
+
+        let { vendorIds } = req.body
+        if (!vendorIds || Array.isArray(vendorIds) && vendorIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No Vendors IDs Provided"
+            })
+        }
+
+        if (!Array.isArray(vendorIds)) {
+            vendorIds = [vendorIds]
+        }
+        vendorIds = vendorIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+        try{
+            const approvedVendors = await withTransaction(async (session) => {
+                const result = await Vendors.updateMany(
+                    { vendorId: { $in: vendorIds } },
+                    { $set: { isApproved: true } }
+                ).session(session)
+
+                if (result.modifiedCount === 0) {
+                    throw new Error("NO_MATCHED_VENDORS");
+                }
+
+                logger.info("Vendors approved", { count: result.modifiedCount })
+
+                const vendors = await Vendors.find({
+                    vendorId: { $in: vendorIds }
+                }).session(session)
+
+                for(const vendor of vendors) {
+                    
+                    await rabbitMQClient.publish('vendor.approved', {
+                        vendorId: vendor.vendorId.toString(),
+                        businessName: vendor.businessName,
+                        email: vendor.email
+                    })
+
+                    await rabbitMQClient.publish('notification.vendorApproved', {
+                        email: vendor.email,
+                        type: "APPROVED",
+                        payload: {
+                            firstName: vendor.firstName,
+                            lastName: vendor.lastName,
+                            vendorId: vendor.vendorId.toString()
+                        }
+                    });
+                }
+                return result.modifiedCount;
+            })
+            return res.status(200).json({
+                success: true,
+                message: "Vendors have been approved",
+                count: approvedVendors
+            })
+        } catch(error) {
+            if (error.message === "NO_MATCHED_VENDORS") {
+                return res.status(404).json({
+                    success: false,
+                    message: "No matching vendors found"
+                });
+            }
+            logger.error("Error approving vendors", error)
+            return res.status(500).json({ success: false, message: "Internal Server Error" });
         }
     }
 }

@@ -6,12 +6,10 @@ const { Schema, model } = mongoose;
 const customerSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
-        ref: "User",
         required: true
     },
     customerId: {
         type: Schema.Types.ObjectId,
-        ref: "Customer",
         required: true
     },
     firstName: {

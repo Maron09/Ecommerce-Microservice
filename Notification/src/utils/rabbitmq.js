@@ -57,6 +57,10 @@ class RabbitMQClient {
             if(!this.channel){
                 await this.connect(this.exchangeName);
             }
+            logger.info(`🐞 Exchange name: ${this.exchangeName}`);
+            if (typeof this.exchangeName !== 'string') {
+                throw new Error(`Exchange name is invalid: ${JSON.stringify(this.exchangeName)}`);
+            }
             const payload = Buffer.from(JSON.stringify(message));
             const success = this.channel.publish(this.exchangeName, routingKey, payload, options);
             if (!success) {

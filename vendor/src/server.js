@@ -61,10 +61,13 @@ app.use(errorHandler)
 
 async function startServer() {
     try {
+        
         await rabbitMQClient.connect(process.env.EVENTS, process.env.TOPIC, {durable: false})
         logger.info("RabbitMQ connected Successfully")
 
         await rabbitMQClient.consume('user.is_verified.profile_create', VendorEvents.onVendorCreated);
+        
+        await rabbitMQClient.consume('vendor.approved', VendorEvents.onVendorIsApproved)
 
         app.listen(PORT, () => {
             logger.info(`Server is running on port ${PORT}`);

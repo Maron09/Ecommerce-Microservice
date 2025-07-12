@@ -8,6 +8,7 @@ class RabbitMQClient {
         this.connection = null;
         this.channel = null;
         this.exchangeName = null;
+        this._shutdownHookAttached = false;
     }
 
     async connect(exchangeName = 'default_exchange', type = 'topic', options = {durable: false}) {
@@ -15,6 +16,12 @@ class RabbitMQClient {
             this.connection = await amqplib.connect(this.url)
             this.channel = await this.connection.createChannel();
             this.exchangeName = exchangeName;
+
+
+            if (!exchangeName || typeof exchangeName !== 'string') {
+                throw new Error(`Invalid exchange name passed to connect(): ${exchangeName}`);
+            }
+
 
             await this.channel.assertExchange(this.exchangeName, type, options);
 
@@ -59,6 +66,10 @@ class RabbitMQClient {
             }
             if(!this.channel){
                 await this.connect(this.exchangeName);
+            }
+            logger.info(`🐞 Exchange name: ${this.exchangeName}`);
+            if (typeof this.exchangeName !== 'string') {
+                throw new Error(`Exchange name is invalid: ${JSON.stringify(this.exchangeName)}`);
             }
             const payload = Buffer.from(JSON.stringify(message));
             const success = this.channel.publish(this.exchangeName, routingKey, payload, options);
@@ -128,7 +139,7 @@ class RabbitMQClient {
                         this.channel.nack(msg, false, false); // DLQ
                     }
 
-                    this.channel.ack(msg); // always ack original so it's not stuck
+                    this.channel.ack(msg); 
                 }
             }
         }, { noAck: false });
@@ -182,6 +193,10 @@ class RabbitMQClient {
     }
 
     #setupGracefulShutdown() {
+        if (this._shutdownHookAttached) return; // prevent multiple listeners
+
+        this._shutdownHookAttached = true;
+
         process.on('SIGINT', async () => {
             logger.info('SIGINT received, closing RabbitMQ connection...');
             await this.close();

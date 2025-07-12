@@ -1,5 +1,4 @@
 import logger from "../utils/logger.js";
-import mongoose from "mongoose";
 import Vendor from "../models/Vendor.js";
 import rabbitMQClient from "../utils/rabbit.js";
 import withTransaction from "../helpers/transactions.js";
@@ -37,6 +36,33 @@ class VendorEvents {
                 email: newVendor.email,
                 isApproved: newVendor.isApproved
             })
+        })
+    }
+
+    static async onVendorIsApproved(data) {
+        if (!data?.vendorId || !data?.businessName || !data?.email) {
+            logger.error("Invalid data received for vendor approval", data);
+            throw new Error("Invalid data for vendor approval");
+        }
+
+        logger.info("Received vendor approval event", data)
+        return await withTransaction(async (session) => {
+            const vendor = await Vendor.findOne({_id: data.vendorId}).session(session)
+
+            if (!vendor) {
+                logger.error("Vendor not found", { vendorId: data.vendorId });
+                new Error("Vendor not found");
+            }
+
+            if (vendor.isApproved) {
+                logger.info("Vendor is already approved", { vendorId: data.vendorId });
+                return;
+            }
+
+            vendor.isApproved = true
+            await vendor.save({session})
+
+            logger.info("Vendor marked as approved", { vendorId: data.vendorId });
         })
     }
 }
