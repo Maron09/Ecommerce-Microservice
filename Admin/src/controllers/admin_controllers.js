@@ -178,6 +178,7 @@ class AdminControllers {
                 for(const vendor of vendors) {
                     
                     await rabbitMQClient.publish('vendor.approved', {
+                        userId: vendor.userId.toString(),
                         vendorId: vendor.vendorId.toString(),
                         businessName: vendor.businessName,
                         email: vendor.email

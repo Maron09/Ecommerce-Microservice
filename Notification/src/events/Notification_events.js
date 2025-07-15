@@ -180,7 +180,7 @@ class NotificationEvents {
                 email: data.email,
                 type: data.type,
                 payload: data.payload,
-                status: "PENDING" // start with pending
+                status: "PENDING"
             }], { session });
 
             await sendNotificationEmail({
