@@ -1,4 +1,5 @@
 import logger from "../utils/logger.js";
+import jwt from "jsonwebtoken";
 
 class AuthMiddleware {
     static async verifyToken(req, res, next) {

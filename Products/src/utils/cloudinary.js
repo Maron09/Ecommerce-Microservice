@@ -31,7 +31,7 @@ class CloudinaryServices {
                 uploadStream.end(file.buffer);
             })
             uploadedImages.push({
-                originalname: file.originalname,
+                originalName: file.originalName,
                 secure_url: result.secure_url,
                 public_id: result.public_id,
             })

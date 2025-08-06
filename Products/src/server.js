@@ -11,6 +11,7 @@ import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
 import ProductEvents from "./events/product_events.js";
 import router from "./routes/product_routes.js";
+import RedisClient from "./config/RedisClient.js";
 
 
 const app = express();
@@ -51,7 +52,10 @@ app.use(RateLimiter.create({
 
 
 // Api routes
-app.use("/api/store", router)
+app.use("/api/store", (req, res, next) => {
+    req.redisClient = RedisClient
+    next()
+}, router)
 
 
 app.use(errorHandler)

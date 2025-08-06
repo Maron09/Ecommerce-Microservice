@@ -12,6 +12,7 @@ import AuthMiddleware from "./middleware/Auth_middleware.js";
 
 
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -55,7 +56,14 @@ app.use("/v1/admin", AuthMiddleware.ValidateToken, CreateProxy(process.env.ADMIN
 
 app.use("/v1/vendor", AuthMiddleware.ValidateToken, CreateProxy(process.env.VENDOR_SERVICE, "Vendor Service"))
 
-app.use("/v1/store", AuthMiddleware.ValidateToken, CreateProxy(process.env.PRODUCT_SERVICE, "Product Service"))
+// app.use("/v1/store", AuthMiddleware.ValidateToken, CreateProxy(process.env.PRODUCT_SERVICE, "Product Service"))
+app.use("/v1/store/create-product", AuthMiddleware.ValidateToken, CreateProxy(process.env.PRODUCT_SERVICE, "Product Service"))
+app.use("/v1/store", (req, res, next) => {
+    if (req.method === "GET") {
+        return CreateProxy(process.env.PRODUCT_SERVICE, "Product Service")(req, res, next)
+    }
+    AuthMiddleware.ValidateToken(req, res, next)
+}, CreateProxy(process.env.PRODUCT_SERVICE, "Product Service"))
 
 app.use(errorHandler)
 
