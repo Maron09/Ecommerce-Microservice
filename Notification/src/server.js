@@ -44,6 +44,8 @@ async function startServer() {
         await rabbitMQClient.consume('user.password_reset', NotificationEvents.handleResetPassword)
 
         await rabbitMQClient.consume('notification.vendorApproved', NotificationEvents.handleVendorApproved)
+
+        await rabbitMQClient.consume('inventory.low_count', NotificationEvents.handleLowStockMessage)
         app.listen(PORT, () => {
             logger.info(`🚀 Notification service is running on port:${PORT}`);
         })

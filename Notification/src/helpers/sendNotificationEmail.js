@@ -131,6 +131,51 @@ async function sendNotificationEmail({ email, subject, type, payload }) {
             subject = subject || "Vendor Account Approved"
             break
         
+        case "LOW_INVENTORY":
+    html = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #fffaf0; border: 1px solid #f0c36d;">
+            <h2 style="color: #d35400;">⚠️ Low Inventory Alert</h2>
+            <p style="font-size: 16px; color: #555;">
+                Hello <strong>${payload.businessName}</strong>,
+            </p>
+            <p style="font-size: 16px; color: #555;">
+                One or more of your products are running <strong style="color:#e74c3c;">low on stock</strong>.  
+                Customers may not be able to purchase them soon if you don’t restock.
+            </p>
+
+            <table cellpadding="8" cellspacing="0" border="1" 
+                style="border-collapse: collapse; width:100%; margin:15px 0; font-size:14px; text-align:left; background:#fff;">
+                <thead style="background-color:#f8f9fa;">
+                    <tr>
+                        <th style="border:1px solid #ddd;">Product Name</th>
+                        <th style="border:1px solid #ddd;">Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${payload.products.map(p => `
+                        <tr>
+                            <td style="border:1px solid #ddd;">${p.productName}</td>
+                            <td style="border:1px solid #ddd; color:#e74c3c; font-weight:bold;">${p.stock}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; margin: 15px 0;">
+                <p style="margin: 0; font-size: 15px; color: #333;">
+                    📦 <strong>Action Required:</strong> Please update your inventory to avoid missing sales.
+                </p>
+            </div>
+            <p style="font-size: 14px; color: #888;">
+                Stay ahead by restocking in time and keeping your best-sellers available.
+            </p>
+            <p style="font-size: 14px; color: #888;">– The Team</p>
+        </div>
+    `;
+    subject = subject || "⚠️ Low Inventory Alert – Restock Now"
+    break;
+
+        
         default:
             html = `
                 <div style="font-family: Arial, sans-serif;">

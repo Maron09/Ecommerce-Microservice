@@ -172,8 +172,8 @@ class NotificationEvents {
     }
 
     static async handleVendorApproved(data) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+            const session = await mongoose.startSession();
+            session.startTransaction();
 
         try {
             const notification = await Notification.create([{
@@ -202,6 +202,43 @@ class NotificationEvents {
         } catch (error) {
             await session.abortTransaction();
             logger.error("Error sending vendor approval email:", error.stack);
+            throw error;
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    static async handleLowStockMessage(data) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const notification = await Notification.create([{
+                email: data.email,
+                type: data.type,
+                payload: data.payload,
+                status: "PENDING"
+            }], { session });
+
+            await sendNotificationEmail({
+                email: data.email,
+                type: "LOW_INVENTORY",
+                payload: data.payload
+            });
+
+            // Update the status in the same session
+            await Notification.updateOne(
+                { _id: notification[0]._id },
+                { $set: { status: "SENT" } },
+                { session }
+            );
+
+            await session.commitTransaction();
+
+            logger.info("Low inventory alert email sent successfully to:", data.email);
+        } catch (error) {
+            await session.abortTransaction();
+            logger.error("Error sending low inventory alert email:", error.stack);
             throw error;
         } finally {
             await session.endSession();

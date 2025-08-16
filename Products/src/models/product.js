@@ -26,7 +26,9 @@ const productSchema = new Schema({
             required: false
         }
     }],
-    
+    inventoryCode: {
+        type: String,
+    },
     status: {
         type: String,
         enum: ["ACTIVE", "INACTIVE", "DRAFT", "BLOCKED"],

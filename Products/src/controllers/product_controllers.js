@@ -6,6 +6,8 @@ import CloudinaryServices from "../utils/cloudinary.js";
 import paginationResults from "../helpers/pagination.js";
 import { buildPaginatedResponse } from "../helpers/paginatonResponse.js";
 import invalidateProductCache from "../utils/cache.js";
+import generateInventoryCode from "../utils/inventory.js";
+import rabbitMQClient from "../utils/rabbit.js";
 
 
 
@@ -57,6 +59,19 @@ class ProductControllers {
                     })),
                     status: "ACTIVE"
                 }], { session });
+                const inventoryCode = generateInventoryCode(newProduct[0]._id);
+                newProduct[0].inventoryCode = inventoryCode;
+                await newProduct[0].save({session});
+
+                await rabbitMQClient.publish("product.created", {
+                    productId: newProduct[0]._id,
+                    productName: newProduct[0].productName,
+                    businessName: approvedVendor.businessName,
+                    vendorId: approvedVendor.vendorId,
+                    email: approvedVendor.email,
+                    inventoryCode: newProduct[0].inventoryCode,
+                    stock: newProduct[0].stock,
+                })
 
                 const totalPosts = await Product.countDocuments({ status: "ACTIVE" }).session(session);
                 const totalPages = Math.ceil(totalPosts / 10); // Assuming 10 items per page
