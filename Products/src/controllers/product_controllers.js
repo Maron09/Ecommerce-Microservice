@@ -238,12 +238,7 @@ class ProductControllers {
     }
 
     static async getProducts(req, res) {
-        // const userId = req.user.userId
-
-        // if (!userId) {
-        //     logger.warn("User ID not found in request");
-        //     return res.status(400).json({ success: false, message: "User ID is required" });
-        // }
+        
         logger.info("Getting products...");
         try {
             const totalItems = await Product.countDocuments({ status: "ACTIVE" });
@@ -273,7 +268,7 @@ class ProductControllers {
                 }));
             }
             logger.info("Products retrieved successfully", { count: products.length });
-            await req.redisClient.set(cacheKey, JSON.stringify(products), 'EX', 3600); // Cache for 1 hour
+            await req.redisClient.setex(cacheKey, 3600, JSON.stringify(products)); // Cache for 1 hour
             return res.status(200).json(buildPaginatedResponse({
                 data: products,
                 message: "Products retrieved successfully",
@@ -291,12 +286,7 @@ class ProductControllers {
 
     static async getProductById(req, res) {
         const { productId } = req.params
-        // const userId = req.user.userId
-
-        // if (!userId) {
-        //     logger.warn("User ID not found in request");
-        //     return res.status(400).json({ success: false, message: "User ID is required" });
-        // }
+        
         logger.info("Getting product by ID...", { productId });
         try {
             const product = await Product.findOne({ _id: productId, status: "ACTIVE" })
@@ -321,6 +311,76 @@ class ProductControllers {
             });
         }
     }
+
+    static async updateProduct(req, res) {
+        const { productId } = req.params;
+        const updatedData = req.body;
+        const userId = req.user.userId;
+
+        if (!userId) {
+            logger.warn("User ID not found in request");
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        logger.info("Updating Product...", { productId });
+
+        try {
+            return await withTransaction(async (session) => {
+                const product = await Product.findOne({ _id: productId }).session(session);
+
+                if (!product) {
+                    logger.warn("Product not found", { productId });
+                    return res.status(404).json({
+                        success: false,
+                        message: "Product not found"
+                    });
+                }
+
+                if (product.userId.toString() !== userId) {
+                    logger.warn("Unauthorized access attempt to update product", { userId, productId });
+                    return res.status(403).json({
+                        success: false,
+                        message: "Access Denied. You can only update your own products."
+                    });
+                }
+
+                // ✅ Only update allowed fields
+                const allowedUpdates = ["productName", "description", "price", "stock", "status"];
+                for (const key of Object.keys(updatedData)) {
+                    if (allowedUpdates.includes(key)) {
+                        product[key] = updatedData[key];
+                    }
+                }
+
+                await product.save({ session });
+
+                // ❓ cache invalidation (maybe optimize later)
+                const totalProducts = await Product.countDocuments().session(session);
+                const totalPages = Math.ceil(totalProducts / 10);
+                for (let page = 1; page <= totalPages; page++) {
+                    await invalidateProductCache(req, page, 10);
+                }
+                await rabbitMQClient.publish("product.updated", {
+                    productId: product._id.toString(),
+                    updatedValues: updatedData,
+                })
+
+                logger.info("Product updated successfully", { productId });
+                return res.status(200).json({
+                    success: true,
+                    message: "Product updated successfully",
+                    data: product
+                });
+            });
+        } catch (error) {
+            logger.error("Error updating product", { error: error.stack || error.message });
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error"
+            });
+        }
+    }
+
 }
 
 

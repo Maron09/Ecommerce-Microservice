@@ -82,67 +82,71 @@ class RabbitMQClient {
         }
     }
 
+    // A CORRECTED version of consume method
     async consume(routingKey, callback, queueName = '', options = { exclusive: false, useDLQ: true, retry: true, maxRetries: 3 }) {
-    try {
-        if (!this.channel) {
-            await this.connect(this.exchangeName);
-        }
-
-        const queueOptions = {
-            durable: true,
-            exclusive: options.exclusive || false,
-        };
-
-        if (options.useDLQ) {
-            queueOptions['x-dead-letter-exchange'] = 'dead_letter_exchange';
-            queueOptions['x-dead-letter-routing-key'] = 'dead_letter';
-        }
-
-        const q = await this.channel.assertQueue(queueName, queueOptions);
-        await this.channel.bindQueue(q.queue, this.exchangeName, routingKey);
-
-        logger.info(`Waiting for messages in queue '${q.queue}' with routing key '${routingKey}'`);
-
-        this.channel.consume(q.queue, async (msg) => {
-            if (msg !== null) {
-                try {
-                    const messageContent = JSON.parse(msg.content.toString());
-                    logger.info(`Received message: ${JSON.stringify(messageContent)}`);
-                    await callback(messageContent);
-                    this.channel.ack(msg);
-                } catch (error) {
-                    logger.error('Error processing message:', error);
-                    
-                    const headers = msg.properties.headers || {};
-                    const retryCount = headers['x-retry-count'] || 0;
-
-                    if (options.retry && retryCount < options.maxRetries) {
-                        logger.warn(`Retrying message (${retryCount + 1}/${options.maxRetries})`);
-                        this.channel.publish(
-                            'retry_exchange',
-                            'retry',
-                            msg.content,
-                            {
-                                headers: { 'x-retry-count': retryCount + 1 },
-                                persistent: true
-                            }
-                        );
-                    } else {
-                        logger.error('Max retries reached. Sending to DLQ.');
-                        this.channel.nack(msg, false, false); // DLQ
-                    }
-
-                    this.channel.ack(msg); // always ack original so it's not stuck
-                }
+        try {
+            if (!this.channel) {
+                await this.connect(this.exchangeName);
             }
-        }, { noAck: false });
-
-        logger.info(`Consumer is set up for routing key '${routingKey}'`);
-    } catch (error) {
-        logger.error('Error consuming message from RabbitMQ:', error);
-        throw error;
+    
+            const queueOptions = {
+                durable: true,
+                exclusive: options.exclusive || false,
+            };
+    
+            // You still have useDLQ option, but it's not being used in your logic.
+            // It's not a bug, just a bit confusing.
+            if (options.useDLQ) {
+                queueOptions['x-dead-letter-exchange'] = 'dead_letter_exchange';
+                queueOptions['x-dead-letter-routing-key'] = 'dead_letter';
+            }
+    
+            const q = await this.channel.assertQueue(queueName, queueOptions);
+            await this.channel.bindQueue(q.queue, this.exchangeName, routingKey);
+    
+            logger.info(`Waiting for messages in queue '${q.queue}' with routing key '${routingKey}'`);
+    
+            this.channel.consume(q.queue, async (msg) => {
+                if (msg !== null) {
+                    try {
+                        const messageContent = JSON.parse(msg.content.toString());
+                        logger.info(`Received message: ${JSON.stringify(messageContent)}`);
+                        await callback(messageContent);
+                        this.channel.ack(msg);
+                    } catch (error) {
+                        logger.error('Error processing message:', error);
+                        const headers = msg.properties.headers || {};
+                        const retryCount = headers['x-retry-count'] || 0;
+    
+                        if (options.retry && retryCount < options.maxRetries) {
+                            logger.warn(`Retrying message (${retryCount + 1}/${options.maxRetries})`);
+                            this.channel.publish(
+                                'retry_exchange',
+                                'retry',
+                                msg.content,
+                                {
+                                    headers: { 'x-retry-count': retryCount + 1 },
+                                    persistent: true
+                                }
+                            );
+                            // Acknowledge the message so it's removed from the main queue
+                            this.channel.ack(msg); 
+                        } else {
+                            logger.error('Max retries reached. Sending to DLQ.');
+                            // Reject the message so it goes to the DLQ
+                            this.channel.nack(msg, false, false);
+                            // There is no need for a separate `ack` here. `nack` handles it.
+                        }
+                    }
+                }
+            }, { noAck: false });
+    
+            logger.info(`Consumer is set up for routing key '${routingKey}'`);
+        } catch (error) {
+            logger.error('Error consuming message from RabbitMQ:', error);
+            throw error;
+        }
     }
-}
 
 
     async consumeDLQ(callback, routingKey = 'dead_letter', queueName = 'dead_letter_queue') {

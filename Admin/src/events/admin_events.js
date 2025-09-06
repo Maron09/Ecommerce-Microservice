@@ -6,6 +6,7 @@ import Users from "../models/users.js";
 import Customers from "../models/customers.js";
 import Vendors from "../models/vendors.js";
 import SubAccounts from "../models/subaccounts.js";
+import Products from "../models/products.js";
 
 
 
@@ -205,6 +206,32 @@ class AdminEvents {
             }], {session})
 
             return newBank[0]
+        })
+    }
+
+    static async onProductCreated(data) {
+        if (!data?.productId || !data?.productName || !data?.vendorId || !data?.email || !data?.inventoryCode || data.stock === undefined) {
+            logger.error("Invalid data received for product creation", data);
+            throw new Error("Invalid data for product creation");
+        }
+        logger.info("Valid data received for product creation", data);
+        return await withTransaction(async (session) => {
+            const exist = await Products.findOne({ productId: data.productId }, null, { session })
+            if (exist) {
+                logger.info("Product already exists", { productId: data.productId });
+                return ;
+            }
+
+            await Products.create([{
+                productId: data.productId,
+                productName: data.productName,
+                vendorId: data.vendorId,
+                businessName: data.businessName,
+                inventoryCode: data.inventoryCode,
+                stock: data.stock
+            }], { session })
+
+            logger.info("Product created successfully", { productId: data.productId });
         })
     }
 

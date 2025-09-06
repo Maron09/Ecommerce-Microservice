@@ -34,6 +34,8 @@ async function startServer() {
 
         await rabbitMQClient.consume('product.created', InventoryEvents.onProductCreated)
 
+        await rabbitMQClient.consume('product.updated', InventoryEvents.onProductUpdated)
+
         app.listen(PORT, () => {
             logger.info(`Server is running on port ${PORT}`);
         });

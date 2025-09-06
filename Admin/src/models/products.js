@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 
-const { Schema, model } = mongoose;
+const { Schema, model} = mongoose;
 
-const inventorySchema = new Schema({
+
+const ProductSchema = new Schema ({
     productId: {
         type: Schema.Types.ObjectId,
         required: true,
@@ -19,10 +20,6 @@ const inventorySchema = new Schema({
         type: String,
         required: true,
     },
-    email: {
-        type: String,
-        required: true,
-    },
     inventoryCode: {
         type: String,
         required: true,
@@ -31,13 +28,8 @@ const inventorySchema = new Schema({
         type: Number,
         required: true,
     },
-    lowStockAlertSent: {
-        type: Boolean,
-        default: false
-    }
-}, { timestamps: true });
+})
 
-inventorySchema.index({ stock: 1, lowStockAlertSent: 1 });
+const Products = model("Product", ProductSchema);
 
-const Inventory = model("Inventory", inventorySchema);
-export default Inventory;
+export default Products;

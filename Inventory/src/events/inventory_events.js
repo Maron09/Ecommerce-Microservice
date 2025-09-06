@@ -32,6 +32,35 @@ class InventoryEvents {
         });
     }
 
+    static async onProductUpdated(data) {
+
+        const { productId, updatedValues } = data;
+
+        if (!productId || !updatedValues) {
+            logger.warn("Invalid product.updated message received", { data });
+            return;
+        }
+        logger.info("Received product updated event", data);
+        return await withTransaction(async (session) => {
+            const inventory = await Inventory.findOne({ productId }, null, { session });
+            if (!inventory) {
+                logger.warn("No inventory found for the given productId", { productId });
+                return;
+            }
+
+            let hasChanges = false;
+            for (const [key, value] of Object.entries(updatedValues)) {
+                if (inventory[key] !== value) {
+                    inventory[key] = value;
+                    hasChanges = true;
+                }
+            }
+            if (hasChanges) {
+                await inventory.save({ session });
+                    logger.info("Inventory updated successfully", { productId });
+                }
+        });
+    }
 }
 
 export default InventoryEvents;
