@@ -1,5 +1,6 @@
 import "./helpers/env.js";
 import helmet from "helmet";
+import "./utils/cron.js"
 import express from "express";
 import corsConfig from "./config/CorsConfig.js";
 import RateLimiter from "./middleware/Limit_endpoint.js";
@@ -15,7 +16,7 @@ import RedisClient from "./config/RedisClient.js";
 
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3008;
 
 ConnectToDB()
 

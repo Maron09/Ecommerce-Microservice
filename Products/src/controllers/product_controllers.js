@@ -381,6 +381,65 @@ class ProductControllers {
         }
     }
 
+    static async deleteProduct(req, res) {}
+
+    static async addToCart(req, res) {
+        const {productId} = req.params;
+        const userId = req.user.userId
+        const { quantity = 1 } = req.body;
+
+        if (!userId) {
+            logger.warn("User ID not found in request");
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        try {
+            const product = await Product.findOne({ _id: productId, status: "ACTIVE" });
+            if (!product) {
+                logger.warn("Product not found", { productId });
+                return res.status(404).json({
+                    success: false,
+                    message: "Product not found"
+                });
+            }
+            if (quantity < 1) {
+                logger.warn("Invalid quantity", { productId, quantity });
+                return res.status(400).json({
+                    success: false,
+                    message: "Quantity must be at least 1"
+                });
+            }
+            if (product.stock < quantity) {
+                logger.warn("Product out of stock", { productId });
+                return res.status(400).json({
+                    success: false,
+                    message: "Not enough stock available"
+                });
+            }
+
+            await rabbitMQClient.publish("cart.added", {
+                userId,
+                productId: product._id,
+                productName: product.productName,
+                price: product.price,
+                inventoryCode: product.inventoryCode,
+                quantity
+            })
+
+            logger.info("Product added to cart successfully", { productId, userId });
+            return res.status(200).json({
+                success: true,
+                message: "Product added to cart successfully"
+            });
+        } catch (error) {
+            logger.error("Error adding product to cart", { error: error.stack || error.message });
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error"
+            });
+        }
+    }
+
 }
 
 

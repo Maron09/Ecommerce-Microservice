@@ -120,3 +120,28 @@ export async function processPendingMessages(exchangeName, queueName, handler) {
         if (connection) await connection.close();
     }
 }
+
+export async function resetLowStockFlagsToFalse() {
+    try {
+        const fiveDaysAgo = new Date()
+        fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+        const expiredAlerts = await Inventory.find({
+            lowStockAlertSent: true,
+            updatedAt: { $lte: fiveDaysAgo }
+        })
+
+        if (expiredAlerts.length) {
+            await Inventory.updateMany(
+                { _id: { $in: expiredAlerts.map(p => p._id) } },
+                { $set: { lowStockAlertSent: false } }
+            )
+            logger.info(`Reset low stock flags for (5 days passed): ${expiredAlerts.map(p => p.productName).join(", ")}`
+            )
+        } else {
+            logger.info("No expired low stock alerts to reset")
+        }
+    } catch (error) {
+        logger.error("Error resetting low stock flags", { error: error.stack || error.message })
+    }
+}

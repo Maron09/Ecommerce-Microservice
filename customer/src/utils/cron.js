@@ -1,6 +1,6 @@
 import { processPendingMessages } from "./task.js"
 import cron from "node-cron";
-import CustomerEvents from "./events/customer_events.js";
+import CustomerEvents from "../events/customer_events.js";
 
 
 

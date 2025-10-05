@@ -10,24 +10,24 @@ import ConnectToDB from "./database/db.js";
 import errorHandler from "./middleware/Error_handler.js";
 import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
-import AdminEvents from "./events/admin_events.js";
-import router from "./routes/admin_routes.js";
-
+import CartEvents from "./events/cart_events.js";
+import router from "./routes/cart_routes.js";
+// import RedisClient from "./config/RedisClient.js";
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 3009;
 
+ConnectToDB()
 
-ConnectToDB();
 app.use(helmet());
-app.use(LoggerMiddleware.requestLogger);
-app.use(LoggerMiddleware.addTimeStamp);
+app.use(LoggerMiddleware.requestLogger)
+app.use(LoggerMiddleware.addTimeStamp)
 app.use(corsConfig());
 app.use(express.json());
 
-
 app.use((req, res, next) => {
     const ip = req.ip;
+
     const localIPs = ['::1', '127.0.0.1', '::ffff:127.0.0.1', 'localhost'];
 
     if (localIPs.includes(ip)) {
@@ -41,7 +41,6 @@ app.use((req, res, next) => {
     })(req, res, next);
 });
 
-
 app.set('trust proxy', true);
 
 app.use(RateLimiter.create({
@@ -51,32 +50,23 @@ app.use(RateLimiter.create({
     statusCode: process.env.RATE_LIMIT_STATUS_CODE ? parseInt(process.env.RATE_LIMIT_STATUS_CODE) : 429,
 }));
 
+// Api routes
+app.use("/api/cart", router)
 
-// Import your routes here
-app.use("/api/admin", router)
-
-app.use(errorHandler)
-
-
+app.use(errorHandler);
 async function startServer() {
     try {
         await rabbitMQClient.connect(process.env.EVENTS, process.env.TOPIC, {durable: false})
         logger.info("RabbitMQ connected Successfully")
 
-        await rabbitMQClient.consume('user.is_verified.profile_create', AdminEvents.onAdmincreated);
-        await rabbitMQClient.consume('user.created', AdminEvents.onUserCreated);
-        await rabbitMQClient.consume('user.verified', AdminEvents.onUserIsVerified)
-        await rabbitMQClient.consume('customer.created', AdminEvents.onCustomerCreated)
-        await rabbitMQClient.consume('vendor.created', AdminEvents.onVendorCreated)
-        await rabbitMQClient.consume('vendor.KYC', AdminEvents.onCompleteVendorProfile)
-        await rabbitMQClient.consume('vendor.subaccount', AdminEvents.onSubAccountCreated)
+        await rabbitMQClient.consume('cart.added', CartEvents.onCartAdded)
 
         app.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`)
+            logger.info(`Server is running on port ${PORT}`);
         });
     } catch (error) {
-        logger.error(`Error consuming RabbitMQ queue: ${error.stack}`);
+        logger.error("Error starting server", error);
         process.exit(1);
     }
 }
-startServer()
+startServer();

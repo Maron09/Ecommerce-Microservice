@@ -1,5 +1,6 @@
 import express from "express"
 import "./helpers/env.js"
+import "./utils/cron.js"
 import ConnectToDB from "./database/db.js"
 import corsConfig from "./config/CorsConfig.js"
 import LoggerMiddleware from "./middleware/RequestLogger.js"

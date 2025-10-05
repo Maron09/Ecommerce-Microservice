@@ -13,6 +13,6 @@ router.put("/product/:productId/images", AuthMiddleware.verifyToken, uploadProdu
 router.get("/products", ProductControllers.getProducts)
 router.get("/product/:productId", ProductControllers.getProductById)
 router.put("/product/:productId", AuthMiddleware.verifyToken, ProductControllers.updateProduct)
-
+router.post("/add-to-cart/:productId", AuthMiddleware.verifyToken, ProductControllers.addToCart)
 
 export default router;

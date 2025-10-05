@@ -1,12 +1,13 @@
-import { checkLowStock, resetLowStockFlags, processPendingMessages } from "./task.js"
+import { checkLowStock, resetLowStockFlags, processPendingMessages, resetLowStockFlagsToFalse } from "./task.js"
 import cron from "node-cron";
 import InventoryEvents from "../events/inventory_events.js";
 
 
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
     try {
         await checkLowStock();
         await resetLowStockFlags();
+        await resetLowStockFlagsToFalse();
     } catch (error) {
         console.error("Error running scheduled tasks:", error);
     }
