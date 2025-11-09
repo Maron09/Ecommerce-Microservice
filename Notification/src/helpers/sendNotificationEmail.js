@@ -1,7 +1,7 @@
 import sendEmail from "./mail.js";
 
 async function sendNotificationEmail({ email, subject, type, payload }) {
-    const { firstName = "", lastName = "", OTP = "000000" } = payload || {}
+    const { firstName = "", lastName = "", otp = "000000" } = payload || {}
 
     let html = ""
 
@@ -14,7 +14,7 @@ async function sendNotificationEmail({ email, subject, type, payload }) {
                     Thank you for registering. Your verification code is:
                     </p>
                     <div style="font-size: 32px; font-weight: bold; color: #000; text-align: center; margin: 20px 0;">
-                    ${OTP}
+                    ${otp}
                     </div>
                     <p style="font-size: 14px; color: #888;">
                     This code will expire in 15 minutes. If you did not request this, please ignore this email.
@@ -175,7 +175,108 @@ async function sendNotificationEmail({ email, subject, type, payload }) {
     subject = subject || "⚠️ Low Inventory Alert – Restock Now"
     break;
 
+    
+    case "ORDER_CUSTOMER_NOTIFICATION":
+        const { items, totalAmount, customerName } = payload;
         
+        html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 650px; margin: auto; background-color: #f9f9f9; border: 1px solid #ddd;">
+                <h2 style="color: #333;">Hi ${customerName},</h2>
+                <p style="font-size: 16px; color: #555;">
+                    Thank you for Order! 🎉<br/>
+                    Your order has been successfully placed.
+                </p>
+
+                <h3 style="margin-top: 20px; color: #333;">Order Summary</h3>
+                <table cellpadding="10" cellspacing="0" border="1" 
+                    style="border-collapse: collapse; width:100%; margin:15px 0; font-size:14px; text-align:left; background:#fff;">
+                    <thead style="background-color:#f8f9fa;">
+                        <tr>
+                            <th style="border:1px solid #ddd;">Product</th>
+                            <th style="border:1px solid #ddd;">Quantity</th>
+                            <th style="border:1px solid #ddd;">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(i => `
+                            <tr>
+                                <td style="border:1px solid #ddd;">${i.productName}</td>
+                                <td style="border:1px solid #ddd;">${i.quantity}</td>
+                                <td style="border:1px solid #ddd;">₦${Number(i.price).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <p style="font-size: 16px; color: #333; font-weight: bold;">
+                    Total: ₦${Number(totalAmount).toLocaleString()}
+                </p>
+
+
+                <p style="font-size: 15px; color: #555; margin-top: 25px;">
+                    We’ll notify you once your items are shipped. You can track your order from your dashboard.
+                </p>
+
+                <p style="font-size: 14px; color: #888;">
+                    – The Team
+                </p>
+            </div>
+        `;
+        subject = subject || `Order Confirmation `;
+        break;
+
+    case "ORDER_VENDOR_NOTIFICATION":
+        const { businessName, vitems, total } = payload;
+
+        html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 650px; margin: auto; background-color: #ffffff; border: 1px solid #ddd;">
+                <h2 style="color: #333;">Hello ${businessName},</h2>
+                <p style="font-size: 16px; color: #555;">
+                    🎉 Great news! You have received a new order containing your product${vitems.length > 1 ? 's' : ''}.
+                </p>
+
+                <h3 style="margin-top: 20px; color: #333;">Order Details</h3>
+
+                <table cellpadding="10" cellspacing="0" border="1" 
+                    style="border-collapse: collapse; width:100%; margin:15px 0; font-size:14px; text-align:left; background:#fff;">
+                    <thead style="background-color:#f8f9fa;">
+                        <tr>
+                            <th style="border:1px solid #ddd;">Product</th>
+                            <th style="border:1px solid #ddd;">Quantity</th>
+                            <th style="border:1px solid #ddd;">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${vitems.map(i => `
+                            <tr>
+                                <td style="border:1px solid #ddd;">${i.productName}</td>
+                                <td style="border:1px solid #ddd;">${i.quantity}</td>
+                                <td style="border:1px solid #ddd;">₦${i.price.toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <p style="font-size: 16px; color: #333; font-weight: bold;">
+                    Subtotal for this order: ₦${total.toLocaleString()}
+                </p>
+
+                <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #c8e6c9; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 15px; color: #2e7d32;">
+                        ✅ Please prepare the above items for shipping. You’ll receive another email once the order is ready for pickup or delivery.
+                    </p>
+                </div>
+
+                <p style="font-size: 14px; color: #888; margin-top: 25px;">
+                    Thank you for being part of our marketplace.<br/>
+                    – The Team
+                </p>
+            </div>
+        `;
+        subject = subject || `New Order Received `;
+        break;
+
+
         default:
             html = `
                 <div style="font-family: Arial, sans-serif;">
@@ -185,6 +286,8 @@ async function sendNotificationEmail({ email, subject, type, payload }) {
             `;
             subject = subject || "Notification";
     }
+
+    
 
     await sendEmail(email, subject, html)
 }

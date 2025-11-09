@@ -40,6 +40,42 @@ class CustomerEvents {
             })
         })
     }
+
+    static async onOrderPlaced(data) {
+        if (!data?.items || !Array.isArray(data.items) || data.items.length === 0) {
+            logger.error("Invalid data received for order placed", data);
+            throw new Error("Invalid data for order placed");
+        }
+
+        logger.info("Received order placed event", {
+            itemCount: data.items.length,
+            userId: data.userId
+        });
+        return await withTransaction(async (session) => {
+            const customer = await Customer.findOne({ userId: data.userId }, null, { session });
+            if (!customer) {
+                logger.error("Customer not found for the given user ID", { userId: data.userId });
+                return;
+            }
+
+            const totalAmount = data.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const payload = {
+                customerName: customer.fullName,
+                items: data.items,
+                totalAmount
+            }
+            await rabbitMQClient.publish("order.customer.notify", {
+                type: "ORDER_CUSTOMER_NOTIFICATION",
+                email: customer.email,
+                payload
+            })
+            logger.info("Published 'order.customer.notification' event", {
+                email: customer.email,
+                itemCount: data.items.length,
+                totalAmount
+            });
+        });
+    }
 }
 
 

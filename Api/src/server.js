@@ -69,6 +69,8 @@ app.use("/v1/cart", AuthMiddleware.ValidateToken, CreateProxy(process.env.CART_S
 
 app.use("/v1/order", AuthMiddleware.ValidateToken, CreateProxy(process.env.ORDER_SERVICE, "Order Service"))
 
+app.use("/v1/payments", AuthMiddleware.ValidateToken, CreateProxy(process.env.PAYMENT_SERVICE, "Payment Service"))
+
 app.use(errorHandler)
 
 app.listen(PORT, () => {
@@ -80,5 +82,6 @@ app.listen(PORT, () => {
     logger.info(`🚀 Admin Service is running on URL: ${process.env.ADMIN_SERVICE}`);
     logger.info(`🚀 Cart Service is running on URL: ${process.env.CART_SERVICE}`);
     logger.info(`🚀 Order Service is running on URL: ${process.env.ORDER_SERVICE}`);
+    logger.info(`🚀 Payment Service is running on URL: ${process.env.PAYMENT_SERVICE}`);
     logger.info(`🚀 Redis Url: ${process.env.REDIS_URL}`);
 })

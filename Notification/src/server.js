@@ -47,6 +47,9 @@ async function startServer() {
         await rabbitMQClient.consume('notification.vendorApproved', NotificationEvents.handleVendorApproved)
 
         await rabbitMQClient.consume('inventory.low_count', NotificationEvents.handleLowStockMessage)
+
+        await rabbitMQClient.consume('order.customer.notify', NotificationEvents.handleOrderNotification)
+        await rabbitMQClient.consume('order.vendor.notify', NotificationEvents.handleOrderNotification)
         app.listen(PORT, () => {
             logger.info(`🚀 Notification service is running on port:${PORT}`);
         })

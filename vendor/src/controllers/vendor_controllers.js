@@ -56,6 +56,8 @@ class VendorControllers {
                     await rabbitMQClient.publish("vendor.KYC", {
                         userId,
                         businessName: vendor.businessName,
+                        vendorId: vendor._id.toString(),
+                        email: vendor.email,
                         phone: vendor.phone
                     })
                     return vendor
@@ -132,6 +134,8 @@ class VendorControllers {
                     userId,
                     vendorId: vendor._id.toString(),
                     bankName: bank.name,
+                    businessName: vendor.businessName,
+                    email: vendor.email,
                     bankCode,
                     subaccountCode: sub.subaccount_code,
                 })

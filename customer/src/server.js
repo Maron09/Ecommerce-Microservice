@@ -64,6 +64,7 @@ async function startServer() {
         logger.info("RabbitMQ connected Successfully")
         
         await rabbitMQClient.consume('user.is_verified.profile_create', CustomerEvents.onCustomerCreated)
+        await rabbitMQClient.consume('order.placed', CustomerEvents.onOrderPlaced)
 
         app.listen(PORT, () => {
             logger.info(`Server is running on port ${PORT}`);

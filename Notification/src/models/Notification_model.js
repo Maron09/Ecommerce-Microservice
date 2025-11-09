@@ -10,7 +10,7 @@ const NotificationSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ["VERIFICATION", "RESEND_OTP", "FORGOT_PASSWORD", "APPROVED", "RESET_PASSWORD", "WELCOME", "ORDER_CONFIRMATION", "LOW_INVENTORY"],
+        enum: ["VERIFICATION", "RESEND_OTP", "FORGOT_PASSWORD", "APPROVED", "RESET_PASSWORD", "WELCOME", "ORDER_CONFIRMATION", "LOW_INVENTORY", "ORDER_VENDOR_NOTIFICATION", "ORDER_CUSTOMER_NOTIFICATION"],
         required: true
     },
     payload: {

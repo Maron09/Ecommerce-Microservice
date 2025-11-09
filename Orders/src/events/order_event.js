@@ -30,10 +30,42 @@ class OrderEvents {
                 total: item.price * item.quantity
             }))
             await OrderItem.insertMany(orderItems, { session });
+            
             logger.info("Order items created", { orderId: order[0]._id, itemCount: orderItems.length });
 
             return order[0];
         })
+    }
+
+    static async onPaymentCompleted(data) {
+        if (!data?.orderId || !data?.status) {
+            logger.error("Invalid payment completion data", data);
+            throw new Error("Invalid data for Payment Completion");
+        }
+
+        logger.info("Received payment completion event", data);
+
+        return await withTransaction(async (session) => {
+            const order = await Order.findById(data.orderId).session(session);
+            if (!order) {
+                logger.error("Order not found", { orderId: data.orderId });
+                throw new Error("Order not found");
+            }
+            if (data.status === "success") {
+                order.orderStatus = "shipped"
+                order.paymentStatus = "paid"
+            } else if (data.status === "failed") {
+                order.paymentStatus = "failed"
+            } else if (data.status === "refunded") {
+                order.paymentStatus = "refunded"
+                order.orderStatus = "cancelled"
+            }
+            await order.save({ session });
+
+            logger.info("Order payment status updated", { orderId: order._id, status: data.status });
+
+            return order;
+        });
     }
 }
 

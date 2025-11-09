@@ -7,32 +7,41 @@ import sendNotificationEmail from "../helpers/sendNotificationEmail.js";
 
 class NotificationEvents {
     static async handleVerification(data) {
-        const session = await mongoose.startSession()
-        session.startTransaction()
-        try{
-            const notification = await Notification.create({
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const notification = await Notification.create([{
                 email: data.email,
                 type: data.type,
-                payload: data.payload
-            })
+                payload: data.payload,
+                status: "PENDING"
+            }], { session });
+
             await sendNotificationEmail({
                 email: data.email,
                 type: "VERIFICATION",
                 payload: data.payload
-            })
-            notification.status = "SENT"
-            await session.commitTransaction()
-            logger.info("Verification email sent successfully to:", email)
-            await notification.save()
-        } catch(error) {
-            await session.abortTransaction()
-            logger.error("Error sending verification email:", error.stack)
-            throw error
-        }finally{
-            await session.endSession()
-            logger.info("Verification email sent successfully")
+            });
+
+            // Update status within the same transaction
+            notification[0].status = "SENT";
+            await notification[0].save({ session });
+
+            await session.commitTransaction();
+            logger.info("Verification email sent successfully to:", data.email);
+
+        } catch (error) {
+            if (session.inTransaction()) {
+                await session.abortTransaction();
+            }
+            logger.error("Error sending verification email:", error.stack);
+            throw error;
+        } finally {
+            await session.endSession();
         }
     }
+
 
     static async handleResendOTP(data) {
         const session = await mongoose.startSession()
@@ -244,6 +253,65 @@ class NotificationEvents {
             await session.endSession();
         }
     }
+
+    static async handleOrderNotification(data) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Log what we received
+            logger.info("Received order notification event", {
+                type: data.type,
+                email: data.email
+            });
+
+            // Create a notification record
+            const notification = await Notification.create([{
+                email: data.email,
+                type: data.type,
+                payload: data.payload,
+                status: "PENDING"
+            }], { session });
+
+            // Determine which email template to send based on type
+            let emailType;
+            switch (data.type) {
+                case "ORDER_CUSTOMER_NOTIFICATION":
+                    emailType = "ORDER_CUSTOMER_NOTIFICATION";
+                    break;
+                case "ORDER_VENDOR_NOTIFICATION":
+                    emailType = "ORDER_VENDOR_NOTIFICATION";
+                    break;
+                default:
+                    throw new Error(`Unknown order notification type: ${data.type}`);
+            }
+
+            // Send the actual email
+            await sendNotificationEmail({
+                email: data.email,
+                type: emailType,
+                payload: data.payload
+            });
+
+            // Update notification status to SENT
+            await Notification.updateOne(
+                { _id: notification[0]._id },
+                { $set: { status: "SENT" } },
+                { session }
+            );
+
+            await session.commitTransaction();
+
+            logger.info(`Order notification (${data.type}) sent successfully to:`, data.email);
+        } catch (error) {
+            await session.abortTransaction();
+            logger.error("Error sending order notification email:", error.stack);
+            throw error;
+        } finally {
+            await session.endSession();
+        }
+    }
+
 
 }
 

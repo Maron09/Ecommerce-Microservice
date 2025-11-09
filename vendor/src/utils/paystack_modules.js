@@ -1,5 +1,4 @@
 import paystack from "./paystack.js";
-import logger from "./logger.js";
 
 class PaystackServices {
     static async resolveAccount (account_number, bank_code) {

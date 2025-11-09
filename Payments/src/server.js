@@ -10,13 +10,15 @@ import ConnectToDB from "./database/db.js";
 import errorHandler from "./middleware/Error_handler.js";
 import RateLimiterMiddleware from "./middleware/RedisRateLimiter.js";
 import rabbitMQClient from "./utils/rabbit.js";
-import OrderEvents from "./events/order_event.js";
-import router from "./routes/order_routes.js";
+import PaymentEvents from "./events/payment_events.js";
+import router from "./routes/payment_routes.js";
+
 
 const app = express();
-const PORT = process.env.PORT || 3010;
+const PORT = process.env.PORT || 3012;
 
 ConnectToDB()
+
 
 app.use(helmet());
 app.use(LoggerMiddleware.requestLogger)
@@ -41,7 +43,9 @@ app.use((req, res, next) => {
     })(req, res, next);
 });
 
+
 app.set('trust proxy', true);
+
 
 app.use(RateLimiter.create({
     maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) : 1000,
@@ -50,24 +54,29 @@ app.use(RateLimiter.create({
     statusCode: process.env.RATE_LIMIT_STATUS_CODE ? parseInt(process.env.RATE_LIMIT_STATUS_CODE) : 429,
 }));
 
-app.use("/api/order", router)
+// Api routes
+app.use("/api/payments", router);
 
-app.use(errorHandler);
+
+app.use(errorHandler)
+
 async function startServer() {
-    try {
+    try{
         await rabbitMQClient.connect(process.env.EVENTS, process.env.TOPIC, {durable: false})
         logger.info("RabbitMQ connected Successfully")
 
-        await rabbitMQClient.consume('order.placed', OrderEvents.onOrderCreated)
+        await rabbitMQClient.consume("vendor.subaccount", PaymentEvents.onVendorSubaccountCreated);
 
-        await rabbitMQClient.consume('payment.verified', OrderEvents.onPaymentCompleted)
-
+        await rabbitMQClient.consume("customer.created", PaymentEvents.onCustomerCreated);
+        
+        await rabbitMQClient.consume("order.payment", PaymentEvents.onProcessPayment);
         app.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`);
+            logger.info(`Payment Service running on port ${PORT}`);
         });
-    } catch (error) {
-        logger.error("Error starting server", error);
-        process.exit(1);
+    }catch(error){
+        logger.error(`Error consuming RabbitMQ queue: ${error.message}`);
+        process.exit(1)
     }
 }
-startServer();
+
+startServer()
